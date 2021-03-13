@@ -6,8 +6,6 @@ library(xlsx)
 library(WDI)
 library(ggrepel)
 
-setwd("C:/Users/lnoe/Documents/R/WEO graphs/weo_graphs/")
-
 # Loading data ----
 # Import "real" historical GDP growth (will also have projections)
 # Step is navigate to https://web.archive.org/web/20191015153905/https://www.imf.org/external/pubs/ft/weo/2019/02/weodata/index.aspx
@@ -16,7 +14,7 @@ setwd("C:/Users/lnoe/Documents/R/WEO graphs/weo_graphs/")
 # Also select WEO country code and ISO3 code, don't select Subject Descriptor
 # Repeat steps for "By Country Groups"
 # Append one to the other and delete extraneous data in Excel
-weo_real <- read_csv("Data/WEO1019real.csv") %>%
+weo_real <- read_csv("Input/WEO1019real.csv") %>%
     # Reshape to long
     pivot_longer(`1988`:`2024`, names_to = "year") %>%
     # Select and rename right variables
@@ -33,7 +31,7 @@ weo_real <- read_csv("Data/WEO1019real.csv") %>%
 # https://web.archive.org/web/20191017021130/https://www.imf.org/external/pubs/ft/weo/data/WEOhistorical.xlsx
 # File is found on right-hand side menu of IMF WEO database https://web.archive.org/web/20191015153905/https://www.imf.org/external/pubs/ft/weo/2019/02/weodata/index.aspx
 # File is called "Historical WEO Forecasts Database"
-weo <- read_csv("Data/WEO1019.csv") %>%
+weo <- read_csv("Input/WEO1019.csv") %>%
     # Keep only fall estimates
     select(country, WEO_Country_Code, ISOAlpha_3Code, year, starts_with("F")) %>%
     # If destringing all estimate variables first
