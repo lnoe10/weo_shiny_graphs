@@ -58,13 +58,17 @@ weo <- readxl::read_excel(tf, sheet = 2) %>%
     # Sort for easier reading of dataset
     arrange(WEO_Country_Code, f_year, year)
 
+# Create df for graph
 weo_graph <- weo %>%
     # Filter for 1. Country/Region 2. Year 3. WEO Version and get rid of "real" series, signified where f_year is NA
+    # Start with year values since 2010 and Fall forecasts since 2012
     filter(year>=2010, f_year>=2012 & !is.na(f_year)) %>%
+    # Keep only non-missing values and year combinations
     mutate(val_year = case_when(
-        !is.na(value) == TRUE ~ year,
+        !is.na(value) ~ year,
         TRUE ~ NA_real_
     )) %>%
+    # Create label for each Fall forecast at the end of the last year
     group_by(f_year) %>%
     mutate(label = case_when(
         year == max(val_year, na.rm = TRUE) ~ as.character(f_year),
@@ -72,9 +76,14 @@ weo_graph <- weo %>%
     )) %>%
     ungroup()
     
+# Create final forecast year vector (just a number)
+final_year <- weo %>% 
+    summarize(final_year = max(f_year, na.rm = TRUE)) %>% 
+    pull()
 
-final_year <- weo %>% summarize(final_year = max(f_year, na.rm = TRUE)) %>% pull()
-
+# Create "real" forecast series that filters to values for years since 2010 and cuts
+# off 1 year before the year in which forecast was made.
+# So for Fall 2020 vintage, last real growth value kept will be for 2019
 weo_series_real <- weo %>% 
     filter(year>=2010 & year < final_year, is.na(f_year))
 
@@ -105,7 +114,7 @@ server <- function(input, output) {
             # Select geom
             geom_line() +
             # Add "real" series back in by bringing in weo again, this time keeping NA for f_year
-            # Also restrict maximum display to year before the last projection. That value is 2019 in 2019
+            # Also restrict maximum display to year before the last projection. That value is 2019 in 2020
             geom_line(data = weo_series_real %>% filter(country == input$country),
                       color = "black", size = 0.9) +
             # Add vertical for current year
