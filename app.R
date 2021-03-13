@@ -2,8 +2,6 @@
 library(shiny)
 library(rsconnect)
 library(tidyverse)
-library(xlsx)
-library(WDI)
 library(ggrepel)
 
 # Loading data ----
@@ -13,25 +11,40 @@ library(ggrepel)
 # Then select 1988 as starting year, as historical database starts then
 # Also select WEO country code and ISO3 code, don't select Subject Descriptor
 # Repeat steps for "By Country Groups"
-# Append one to the other and delete extraneous data in Excel
-weo_real <- read_csv("Input/WEO1019real.csv") %>%
+# CAN THIS BE DONE PROGRAMMATICALLY?
+weo_real <- read_csv("Input/WEO_Countries_Oct2020.csv") %>%
+    # Drop missing obs that just has metadata in it
+    filter(!is.na(Country)) %>%
+    # Clean out missing observations, which are coded as "n/a and change columns to numeric"
+    mutate(across(`1988`:`2025`, ~as.numeric(str_remove(.x, "n/a")))) %>%
+    # Add Country aggregates info
+    bind_rows(read_csv("Input/WEO_Aggregates_Oct2020.csv") %>%
+                  # Drop missing obs that just has metadata in it
+                  filter(!is.na(`Country Group Name`)) %>%
+                  # Line up variable names with country dataset
+                  rename(Country = `Country Group Name`, `WEO Country Code` = `WEO Country Group Code`) %>%
+                  # # Clean out missing observations, which are coded as "n/a and change columns to numeric"
+                  mutate(across(`1988`:`1991`, ~as.numeric(str_remove(.x, "n/a"))))) %>%
     # Reshape to long
-    pivot_longer(`1988`:`2024`, names_to = "year") %>%
+    pivot_longer(`1988`:`2025`, names_to = "year") %>%
     # Select and rename right variables
-    select(-`Estimates Start After`, country = Country, WEO_Country_Code = `WEO Country Code`, ISOAlpha_3Code = ISO) %>%
+    select(country = Country, WEO_Country_Code = `WEO Country Code`, ISOAlpha_3Code = ISO, year, value) %>%
     # Clean up values and years, create placeholder f_year variable
-    mutate(value = as.numeric(case_when(
-        value == "n/a" ~ NA_character_,
-        TRUE ~ value
-    )),
-    f_year = NA_real_, year = as.numeric(year))
+    mutate(f_year = NA_real_,
+           year = as.numeric(year),
+           WEO_Country_Code = as.numeric(WEO_Country_Code))
 
-# Import historical database
+# Import historical database directly, hopefully link is stable
 # Link of this file
-# https://web.archive.org/web/20191017021130/https://www.imf.org/external/pubs/ft/weo/data/WEOhistorical.xlsx
-# File is found on right-hand side menu of IMF WEO database https://web.archive.org/web/20191015153905/https://www.imf.org/external/pubs/ft/weo/2019/02/weodata/index.aspx
+# https://web.archive.org/web/20210313080306/https://www.imf.org/external/pubs/ft/weo/data/WEOhistorical.xlsx
+# As of October 2020 update, file is found on right-hand side menu of IMF WEO database 
+# https://web.archive.org/web/20210313080306/https://www.imf.org/en/Publications/WEO/weo-database/2020/October
 # File is called "Historical WEO Forecasts Database"
-weo <- read_csv("Input/WEO1019.csv") %>%
+
+# Import excel file directly via httr and readxl
+weo_url <- "https://www.imf.org/external/pubs/ft/weo/data/WEOhistorical.xlsx"
+httr::GET(weo_url, httr::write_disk(tf <- tempfile(fileext = ".xlsx")))
+weo <- readxl::read_excel(tf, sheet = 2) %>%
     # Keep only fall estimates
     select(country, WEO_Country_Code, ISOAlpha_3Code, year, starts_with("F")) %>%
     # If destringing all estimate variables first
@@ -41,7 +54,7 @@ weo <- read_csv("Input/WEO1019.csv") %>%
     # Destring value. Extract year from forecast variable name and make numeric for easy filtering
     mutate(value = as.numeric(value), f_year = as.numeric(str_extract(f_year, pattern = "[0-9]{4}"))) %>%
     # Append "real" GDP growth series
-    rbind(weo_real) %>%
+    bind_rows(weo_real) %>%
     # Sort for easier reading of dataset
     arrange(WEO_Country_Code, f_year, year)
 
