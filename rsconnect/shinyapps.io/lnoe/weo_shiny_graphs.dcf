@@ -1,0 +1,12 @@
+name: weo_shiny_graphs
+title: weo_shiny_graphs
+username:
+account: lnoe
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3785738
+bundleId: 4340069
+url: https://lnoe.shinyapps.io/weo_shiny_graphs/
+when: 1615655516.56395
+asMultiple: FALSE
+asStatic: FALSE
