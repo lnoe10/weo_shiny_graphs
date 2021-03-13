@@ -90,7 +90,7 @@ weo_series_real <- weo %>%
 # ui.R ----
 ui <- fluidPage(
     position = "right",
-    titlePanel("WEO Economic Growth Test"),  # Add a title panel
+    titlePanel("IMF World Economic Growth Forecasts"),  # Add a title panel
     sidebarLayout(  # Make the layout a sidebarLayout
         sidebarPanel(
             selectInput(inputId = "country",  # Give the input a name "genotype"
@@ -117,15 +117,15 @@ server <- function(input, output) {
             # Also restrict maximum display to year before the last projection. That value is 2019 in 2020
             geom_line(data = weo_series_real %>% filter(country == input$country),
                       color = "black", size = 0.9) +
-            # Add vertical for last vintage year
-            geom_vline(xintercept = final_year, linetype = "dashed") +
+            # Add vertical for current year
+            geom_vline(xintercept = as.integer(format(Sys.Date(), "%Y")), linetype = "dashed") +
             geom_text_repel(aes(label = label),
                             nudge_x = 0.5,
                             segment.color = "grey",
                             na.rm = TRUE) +
             # Add labels, including for legend, add caption clarifying black line
-            labs(x = "", y = "Real GDP Growth", color = "Fall WEO", caption = "Solid black line represents historical estimates of most recent WEO",
-                 title = str_c("Growth prospects for ", input$country)) +
+            labs(x = "", y = "Real GDP Growth", color = "Fall WEO", caption = "Solid black line represents historical estimates of most recent WEO\nDashed vertical line represents current year",
+                 title = str_c("GDP growth prospects for ", input$country), subtitle = "Line color and label represents yearly prediction of GDP growth") +
             # Make each year display on x axis. Fix for shiny? Need it to look good dynamically
             scale_x_continuous(breaks = seq(min(weo_graph$year, na.rm = TRUE), max(weo_graph$year, na.rm = TRUE), 1)) +
             theme_classic() +
