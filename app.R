@@ -16,7 +16,8 @@ weo_real <- read_csv("Input/WEO_Countries_Oct2020.csv") %>%
     # Drop missing obs that just has metadata in it
     filter(!is.na(Country)) %>%
     # Clean out missing observations, which are coded as "n/a and change columns to numeric"
-    mutate(across(`1988`:`2025`, ~as.numeric(str_remove(.x, "n/a")))) %>%
+    mutate(across(`1988`:`2025`, ~as.numeric(str_remove(.x, "n/a"))),
+           aggregates = 0) %>%
     # Add Country aggregates info
     bind_rows(read_csv("Input/WEO_Aggregates_Oct2020.csv") %>%
                   # Drop missing obs that just has metadata in it
@@ -24,7 +25,8 @@ weo_real <- read_csv("Input/WEO_Countries_Oct2020.csv") %>%
                   # Line up variable names with country dataset
                   rename(Country = `Country Group Name`, `WEO Country Code` = `WEO Country Group Code`) %>%
                   # # Clean out missing observations, which are coded as "n/a and change columns to numeric"
-                  mutate(across(`1988`:`1991`, ~as.numeric(str_remove(.x, "n/a"))))) %>%
+                  mutate(across(`1988`:`1991`, ~as.numeric(str_remove(.x, "n/a"))),
+                         aggregates = 1)) %>%
     # Reshape to long
     pivot_longer(`1988`:`2025`, names_to = "year") %>%
     # Select and rename right variables
@@ -52,7 +54,11 @@ weo <- readxl::read_excel(tf, sheet = 2) %>%
     # Reshape to long
     pivot_longer(starts_with("F"), names_to = "f_year") %>%
     # Destring value. Extract year from forecast variable name and make numeric for easy filtering
-    mutate(value = as.numeric(value), f_year = as.numeric(str_extract(f_year, pattern = "[0-9]{4}"))) %>%
+    mutate(value = as.numeric(value), f_year = as.numeric(str_extract(f_year, pattern = "[0-9]{4}")),
+           aggregates = case_when(
+               is.na(ISOAlpha_3Code) ~ 1,
+               TRUE ~ 0
+           )) %>%
     # Append "real" GDP growth series
     bind_rows(weo_real) %>%
     # Fix country names
@@ -70,7 +76,7 @@ weo <- readxl::read_excel(tf, sheet = 2) %>%
         TRUE ~ country
     )) %>%
     # Sort for easier reading of dataset
-    arrange(WEO_Country_Code, f_year, year)
+    arrange(aggregates, country, f_year, year)
 
 # Create df for graph
 weo_graph <- weo %>%
