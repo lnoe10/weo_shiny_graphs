@@ -55,6 +55,20 @@ weo <- readxl::read_excel(tf, sheet = 2) %>%
     mutate(value = as.numeric(value), f_year = as.numeric(str_extract(f_year, pattern = "[0-9]{4}"))) %>%
     # Append "real" GDP growth series
     bind_rows(weo_real) %>%
+    # Fix country names
+    mutate(country = case_when(
+        country == "Advanced economies" ~ "Advanced Economies",
+        country == "The Bahamas" ~ "Bahamas, The",
+        country == "Congo, Democratic Republic of the" ~ "Congo, Dem. Rep.",
+        country == "Democratic Republic of the Congo" ~ "Congo, Dem. Rep.",
+        country == "Congo, Republic of" ~ "Congo, Rep.",
+        country == "Republic of Congo" ~ "Congo, Rep.",
+        str_detect(country, "developing economies") ~ "Emerging Market and Developing Economies",
+        country == "The Gambia" ~ "Gambia, The",
+        str_detect(country, "Iran") ~ "Iran, Islamic Rep.",
+        str_detect(country, "Montenegro") ~ "Montenegro, Rep.",
+        TRUE ~ country
+    )) %>%
     # Sort for easier reading of dataset
     arrange(WEO_Country_Code, f_year, year)
 
